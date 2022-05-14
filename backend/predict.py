@@ -17,6 +17,7 @@ vgg19 = VGG19(weights='imagenet',include_top=True, input_shape=IMG_DIM)
 vgg19.layers.pop()
 vggModel = Model( vgg19.input,vgg19.layers[-1].output)
 imagemap = {}
+1
 
 def getImageFeature(path):
     temp = preprocess_input( img_to_array( load_img( os.path.join(path), target_size=IMG_DIM[:2] )) )
