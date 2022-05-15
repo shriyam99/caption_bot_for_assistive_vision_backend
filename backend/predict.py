@@ -16,8 +16,6 @@ IMG_DIM = (224,224,3)
 vgg19 = VGG19(weights='imagenet',include_top=True, input_shape=IMG_DIM)
 vgg19.layers.pop()
 vggModel = Model( vgg19.input,vgg19.layers[-1].output)
-imagemap = {}
-
 
 def getImageFeature(path):
     temp = preprocess_input( img_to_array( load_img( os.path.join(path), target_size=IMG_DIM[:2] )) )
@@ -85,3 +83,4 @@ def getIndToWord():
         ind_to_word[w] = i+1
     return ind_to_word
     
+getData()

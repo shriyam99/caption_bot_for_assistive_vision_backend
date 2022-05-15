@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 from keras.preprocessing.sequence import pad_sequences
-from predict import *
+from predict1 import *
 
 MAX_SEQ_LEN = 17
 
@@ -45,7 +45,7 @@ def main():
 
     def callback(ch, method, properties, body):
         print(" [x] Received %r" % body)
-        print(predict_caption(body))
+        print(image_caption(body))
 
 
     channel.basic_consume(queue='test', on_message_callback=callback, auto_ack=True)
