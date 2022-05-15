@@ -2,7 +2,6 @@
 import pandas as pd
 import numpy as np
 import PIL
-import matplotlib.pyplot as plt
 import keras
 import re
 import nltk
