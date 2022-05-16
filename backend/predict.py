@@ -1,86 +1,77 @@
+# This is a sample Python script.
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
-import os
-from collections import defaultdict
-import gc
-import string
+import PIL
+import keras
+import re
 import nltk
-
-from keras.preprocessing.image import img_to_array, array_to_img, load_img
-from keras.applications.vgg19 import preprocess_input
-from keras.applications.vgg19 import VGG19
-from keras.models import Model
-
-IMG_DIM = (224,224,3)
-vgg19 = VGG19(weights='imagenet',include_top=True, input_shape=IMG_DIM)
-vgg19.layers.pop()
-vggModel = Model( vgg19.input,vgg19.layers[-1].output)
-
-def getImageFeature(path):
-    temp = preprocess_input( img_to_array( load_img( os.path.join(path), target_size=IMG_DIM[:2] )) )
-    return vggModel.predict(np.expand_dims(temp,axis=0))[0]
-
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from collections import defaultdict
+import string
+import json
+from time import time
+import pickle
+from keras.applications.vgg16 import VGG16
+from keras.applications.resnet import ResNet50, preprocess_input, decode_predictions
+from keras.preprocessing import image
+from keras.models import Model, load_model
+from keras.preprocessing.sequence import pad_sequences
+from keras.layers import Input, Dense, Dropout, Embedding, LSTM
+from keras.layers.merge import add
 
-stop_words = set(stopwords.words('english'))
-lemmatizer = WordNetLemmatizer()
-word_counter = defaultdict(int)
+model = load_model("model_weights/model_9.h5")
+# model._make_predict_function()
 
-table = str.maketrans('', '', string.punctuation,)
+model_tmp = ResNet50(weights="imagenet", input_shape=(224,224,3))
 
-def getData():
-    allimage = os.listdir('/Users/magicpin/Downloads/Images')
-    data = pd.read_csv('/Users/magicpin/Downloads/captions.txt', sep='\t',header=None, names= ['image','caption'])
-    data.caption = data.image.apply(lambda x: x.split(',')[1])
-    data.image = data.image.apply( lambda x: x.split('jpg')[0]+'jpg' )
-    data['avail'] = data.image.apply( lambda x: x in allimage )
-    data = data[ data.avail==True ]
-    data = data.dropna()
-    return data
+# Create a new model by removing the last layer from the model
+model_res = Model(model_tmp.input,model_tmp.layers[-2].output)
 
-def preprocesCaption( caption):
-    caption = caption.lower() #to lower case
-    caption = caption.translate(table) #remove punctuations
-    caption = caption.split() # convert to words
-    caption = [ w for w in caption if len(w) > 1 ] #remove dangling 'a' and 's'
-    caption = [ w for w in caption if w.isalpha()  ] #keep only words with alphabets
-    caption = [ lemmatizer.lemmatize(w) for w in caption ]
-    for w in caption: word_counter[w]+=1
-    return ' '.join(caption)
+def preprocess_image(img):
+    img = image.load_img(img, target_size=(224,224))
+    img = image.img_to_array(img)
+    img = np.expand_dims(img, axis=0)
+    img = preprocess_input(img)
+    return img
 
-def getWords():
-    data = getData()
-    words = set()
-    words.update( ('<S>','</S>') )
-    mx = []
-    images = defaultdict(list)
-    for img in tqdm(data.image.unique()):
-        for comment in data[data.image == img ].caption.values:
-            caption = preprocesCaption(comment)
-            caption = [ w for w in caption.split() if word_counter[w]>=10 ]  #taking words whose count atleast 10
-            words.update( caption )
-            mx.append( len(caption)+2 )
-            images[img].append( '<S> '+" ".join(caption)+' </S>' )
-    
-    return words
+def encode_img(img):
+    img = preprocess_image(img)
+    feature_vector = model_res.predict(img)
+    feature_vector = feature_vector.reshape(1,feature_vector.shape[1])
+    return feature_vector
 
-def getWordToInd():
-    word_to_ind = {}
-    words = getWords()
-    for i,w in enumerate(words):
-        word_to_ind[w] = i+1
-    return word_to_ind
-    
+with open("loads/idx_to_word.pkl","rb") as i2w:
+    idx_to_word = pickle.load(i2w)
+
+with open("loads/word_to_idx.pkl","rb") as w2i:
+    word_to_idx = pickle.load(w2i)
+
+max_len = 35
+
+def predict_caption(photo):
+    in_text = "startseq"
+    for i in range(max_len):
+        sequence = [word_to_idx[w] for w in in_text.split() if w in word_to_idx]
+        sequence = pad_sequences([sequence], maxlen=max_len, padding='post')
+
+        ypred = model.predict([photo,sequence])
+        ypred = ypred.argmax()  # Word with max prob always - Greedy Sampling
+        word = idx_to_word[ypred]
+        in_text += (' ' + word)
+
+        if word == "endseq":
+            break
+
+    final_caption = in_text.split()[1:-1]
+    final_caption = ' '.join(final_caption)
+    return final_caption
 
 
-def getIndToWord():
-    ind_to_word = {}
-    words = getWords()
-    for i,w in enumerate(words):
-        ind_to_word[w] = i+1
-    return ind_to_word
-    
-getData()
+
+# load and prepare the photograph
+def image_caption(image):
+    enc = encode_img(image)
+    # generate description
+    description = predict_caption(enc)
+    # description = generate_desc(model, tokenizer, photo, max_length)
+    print(description)
+    return description
