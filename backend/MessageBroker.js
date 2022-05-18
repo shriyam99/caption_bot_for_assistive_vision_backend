@@ -21,15 +21,12 @@ class MessageBroker{
 
 }
 
-
-
-
 MessageBroker.getInstance = async function() {
-    if (!instance) {
-      const broker = new MessageBroker();
-      instance = broker.init()
-    }
-    return instance;
-  };
+  if (!instance) {
+    const broker = new MessageBroker();
+    instance = broker.init()
+  }
+  return instance;
+};
 
-  module.exports = MessageBroker;
+module.exports = MessageBroker;

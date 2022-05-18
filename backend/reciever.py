@@ -5,7 +5,6 @@ import tensorflow as tf
 from keras.preprocessing.sequence import pad_sequences
 from predict import *
 
-
 def main():
 
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
