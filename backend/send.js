@@ -2,7 +2,7 @@ const rabbit = require('./MessageBroker.js')
 
 const send = async (ctx) => {
   const broker = await rabbit.getInstance()
-  console.log("Sended")
+  console.log("Image sent")
   await broker.send('test', Buffer.from(ctx))
 }
 
