@@ -1,13 +1,10 @@
 const express = require('express')
 var send = require('./send')
-const fs = require('fs')
-const util = require('util')
 var cors = require('cors')
 const multer = require('multer')
 const upload = multer({ dest: 'uploads/' })
 const app = express()
 var amqp = require('amqplib/callback_api');
-var server = require('http').Server(app) 
 
 let results = [];
 
